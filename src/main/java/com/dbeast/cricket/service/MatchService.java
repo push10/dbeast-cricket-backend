@@ -1,27 +1,68 @@
 package com.dbeast.cricket.service;
 
-import java.util.List;
-
+import com.dbeast.cricket.dto.MatchRequest;
+import com.dbeast.cricket.dto.MatchResponse;
+import com.dbeast.cricket.entity.Match;
+import com.dbeast.cricket.repository.MatchRepository;
 import org.springframework.stereotype.Service;
 
-import com.dbeast.cricket.entity.Match;
-import com.dbeast.cricket.entity.MatchStatus;
-import com.dbeast.cricket.repository.MatchRepository;
-
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class MatchService {
 
-    private final MatchRepository repository;
+    private final MatchRepository matchRepository;
 
-    public Match createMatch(Match match) {
-        match.setStatus(MatchStatus.SCHEDULED);
-        return repository.save(match);
+    public MatchService(MatchRepository matchRepository) {
+        this.matchRepository = matchRepository;
     }
 
-    public List<Match> getAllMatches() {
-        return repository.findAll();
+    // Create Match
+    public MatchResponse createMatch(MatchRequest request) {
+
+        Match match = mapToEntity(request);
+
+        Match savedMatch = matchRepository.save(match);
+
+        return mapToResponse(savedMatch);
+    }
+
+    // Get All Matches
+    public List<MatchResponse> getAllMatches() {
+        return matchRepository.findAll()
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    // Get Match By Id
+    public MatchResponse getMatchById(Long id) {
+
+        Match match = matchRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Match not found with id: " + id));
+
+        return mapToResponse(match);
+    }
+
+    // ------------------------
+    // Private Mapper Methods
+    // ------------------------
+
+    private Match mapToEntity(MatchRequest request) {
+        Match match = new Match();
+        match.setTeamA(request.getTeamA());
+        match.setTeamB(request.getTeamB());
+        match.setMatchDate(request.getMatchDate());
+        return match;
+    }
+
+    private MatchResponse mapToResponse(Match match) {
+        return new MatchResponse(
+                match.getId(),
+                match.getTeamA(),
+                match.getTeamB(),
+                match.getMatchDate()
+        );
     }
 }

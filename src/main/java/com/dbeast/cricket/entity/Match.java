@@ -1,24 +1,10 @@
 package com.dbeast.cricket.entity;
 
-import java.time.LocalDateTime;
+import jakarta.persistence.*;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.time.LocalDate;
 
 @Entity
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 @Table(name = "matches")
 public class Match {
 
@@ -26,12 +12,50 @@ public class Match {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private LocalDateTime matchDate;
+    @Column(nullable = false)
+    private String teamA;
 
-    private String ground;
+    @Column(nullable = false)
+    private String teamB;
 
-    @Enumerated(EnumType.STRING)
-    private MatchStatus status;
+    @Column(nullable = false)
+    private LocalDate matchDate;
 
-    private String createdBy;
+    public Match() {
+    }
+
+    public Match(Long id, String teamA, String teamB, LocalDate matchDate) {
+        this.id = id;
+        this.teamA = teamA;
+        this.teamB = teamB;
+        this.matchDate = matchDate;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getTeamA() {
+        return teamA;
+    }
+
+    public void setTeamA(String teamA) {
+        this.teamA = teamA;
+    }
+
+    public String getTeamB() {
+        return teamB;
+    }
+
+    public void setTeamB(String teamB) {
+        this.teamB = teamB;
+    }
+
+    public LocalDate getMatchDate() {
+        return matchDate;
+    }
+
+    public void setMatchDate(LocalDate matchDate) {
+        this.matchDate = matchDate;
+    }
 }
