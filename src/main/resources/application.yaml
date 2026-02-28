@@ -1,0 +1,13 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/dbeast
+    username: dbeast_user
+    password: dbeast_pass
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: true
