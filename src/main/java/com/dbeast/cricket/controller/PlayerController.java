@@ -1,32 +1,38 @@
 package com.dbeast.cricket.controller;
 
-import java.util.List;
-
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.dbeast.cricket.entity.Player;
-import com.dbeast.cricket.repository.PlayerRepository;
-
-import lombok.RequiredArgsConstructor;
+import com.dbeast.cricket.dto.*;
+import com.dbeast.cricket.service.PlayerService;
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/players")
-@RequiredArgsConstructor
+@CrossOrigin
 public class PlayerController {
 
-    private final PlayerRepository repository;
+    private final PlayerService playerService;
 
-    @PostMapping
-    public Player create(@RequestBody Player player) {
-        return repository.save(player);
+    public PlayerController(PlayerService playerService) {
+        this.playerService = playerService;
     }
 
-    @GetMapping
-    public List<Player> getAll() {
-        return repository.findAll();
+    // Register player
+    @PostMapping("/register")
+    public ResponseEntity<PlayerResponse> register(@Valid @RequestBody PlayerRegistrationRequest request) {
+        return ResponseEntity.ok(playerService.registerPlayer(request));
+    }
+
+    // Generate OTP
+    @PostMapping("/send-otp")
+    public ResponseEntity<String> sendOtp(@RequestBody SendOtpRequest request) {
+        playerService.sendOtp(request);
+        return ResponseEntity.ok("OTP sent successfully");
+    }
+
+    // Verify OTP + Login
+    @PostMapping("/login")
+    public ResponseEntity<PlayerLoginResponse> login(@Valid @RequestBody PlayerLoginRequest request) {
+        return ResponseEntity.ok(playerService.login(request));
     }
 }
