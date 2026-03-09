@@ -8,20 +8,10 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/players")
-@CrossOrigin
+@RequiredArgsConstructor  // Lombok will generate constructor for final fields
 public class PlayerController {
 
-    private final PlayerService playerService;
-
-    public PlayerController(PlayerService playerService) {
-        this.playerService = playerService;
-    }
-
-    // Register player
-    @PostMapping("/register")
-    public ResponseEntity<PlayerResponse> register(@Valid @RequestBody PlayerRegistrationRequest request) {
-        return ResponseEntity.ok(playerService.registerPlayer(request));
-    }
+    private final PlayerRepository repository;  // Spring injects this
 
     // Generate OTP
     @PostMapping("/send-otp")

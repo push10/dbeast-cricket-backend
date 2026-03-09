@@ -1,61 +1,56 @@
 package com.dbeast.cricket.entity;
 
 import jakarta.persistence.*;
-
-import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
-@Table(name = "matches")
 public class Match {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private String teamA;
+    private String date;       // e.g., "15 Mar 2026"
+    private String opponent;   // opponent team name
+    private String ground;     // ground name
 
-    @Column(nullable = false)
-    private String teamB;
+    private int availableCount; // number of players who confirmed availability
 
-    @Column(nullable = false)
-    private LocalDate matchDate;
+    @ManyToMany
+    @JoinTable(
+        name = "match_player_availability",
+        joinColumns = @JoinColumn(name = "match_id"),
+        inverseJoinColumns = @JoinColumn(name = "player_id")
+    )
+    private Set<Player> availablePlayers = new HashSet<>();
 
-    public Match() {
+    // Constructors
+    public Match() {}
+
+    public Match(String date, String opponent, String ground) {
+        this.date = date;
+        this.opponent = opponent;
+        this.ground = ground;
+        this.availableCount = 0;
     }
 
-    public Match(Long id, String teamA, String teamB, LocalDate matchDate) {
-        this.id = id;
-        this.teamA = teamA;
-        this.teamB = teamB;
-        this.matchDate = matchDate;
-    }
+    // Getters and Setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public Long getId() {
-        return id;
-    }
+    public String getDate() { return date; }
+    public void setDate(String date) { this.date = date; }
 
-    public String getTeamA() {
-        return teamA;
-    }
+    public String getOpponent() { return opponent; }
+    public void setOpponent(String opponent) { this.opponent = opponent; }
 
-    public void setTeamA(String teamA) {
-        this.teamA = teamA;
-    }
+    public String getGround() { return ground; }
+    public void setGround(String ground) { this.ground = ground; }
 
-    public String getTeamB() {
-        return teamB;
-    }
+    public int getAvailableCount() { return availableCount; }
+    public void setAvailableCount(int availableCount) { this.availableCount = availableCount; }
 
-    public void setTeamB(String teamB) {
-        this.teamB = teamB;
-    }
-
-    public LocalDate getMatchDate() {
-        return matchDate;
-    }
-
-    public void setMatchDate(LocalDate matchDate) {
-        this.matchDate = matchDate;
-    }
+    public Set<Player> getAvailablePlayers() { return availablePlayers; }
+    public void setAvailablePlayers(Set<Player> availablePlayers) { this.availablePlayers = availablePlayers; }
 }

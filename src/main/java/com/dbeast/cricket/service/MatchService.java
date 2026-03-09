@@ -1,68 +1,48 @@
 package com.dbeast.cricket.service;
-
-import com.dbeast.cricket.dto.MatchRequest;
-import com.dbeast.cricket.dto.MatchResponse;
-import com.dbeast.cricket.entity.Match;
+ 
 import com.dbeast.cricket.repository.MatchRepository;
+import com.dbeast.cricket.repository.PlayerRepository;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
+
+import com.dbeast.cricket.entity.Match;
+import com.dbeast.cricket.entity.Player;
 
 @Service
 public class MatchService {
 
-    private final MatchRepository matchRepository;
+    @Autowired
+    private MatchRepository matchRepository;
 
-    public MatchService(MatchRepository matchRepository) {
-        this.matchRepository = matchRepository;
+    @Autowired
+    private PlayerRepository playerRepository;
+
+    public Match createMatch(Match match) {
+        match.setAvailableCount(0); // initially 0 players available
+        return matchRepository.save(match);
     }
 
-    // Create Match
-    public MatchResponse createMatch(MatchRequest request) {
-
-        Match match = mapToEntity(request);
-
-        Match savedMatch = matchRepository.save(match);
-
-        return mapToResponse(savedMatch);
+    public List<Match> getAllMatches() {
+        return matchRepository.findAll();
     }
 
-    // Get All Matches
-    public List<MatchResponse> getAllMatches() {
-        return matchRepository.findAll()
-                .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
+    public Match updatePlayerAvailability(Long matchId, Long playerId, boolean available) {
+        Match match = matchRepository.findById(matchId)
+                .orElseThrow(() -> new RuntimeException("Match not found"));
 
-    // Get Match By Id
-    public MatchResponse getMatchById(Long id) {
+        Player player = playerRepository.findById(playerId)
+                .orElseThrow(() -> new RuntimeException("Player not found"));
 
-        Match match = matchRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Match not found with id: " + id));
+        if (available) {
+            match.getAvailablePlayers().add(player);
+        } else {
+            match.getAvailablePlayers().remove(player);
+        }
 
-        return mapToResponse(match);
-    }
-
-    // ------------------------
-    // Private Mapper Methods
-    // ------------------------
-
-    private Match mapToEntity(MatchRequest request) {
-        Match match = new Match();
-        match.setTeamA(request.getTeamA());
-        match.setTeamB(request.getTeamB());
-        match.setMatchDate(request.getMatchDate());
-        return match;
-    }
-
-    private MatchResponse mapToResponse(Match match) {
-        return new MatchResponse(
-                match.getId(),
-                match.getTeamA(),
-                match.getTeamB(),
-                match.getMatchDate()
-        );
+        match.setAvailableCount(match.getAvailablePlayers().size());
+        return matchRepository.save(match);
     }
 }
