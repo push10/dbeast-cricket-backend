@@ -1,43 +1,40 @@
 package com.dbeast.cricket.controller;
- 
-import com.dbeast.cricket.service.MatchService;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-import com.dbeast.cricket.entity.Match;
-import com.dbeast.cricket.entity.Player;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import com.dbeast.cricket.dto.MatchRequest;
+import com.dbeast.cricket.dto.MatchResponse;
+import com.dbeast.cricket.service.MatchService;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/matches")
+@CrossOrigin(origins = "http://localhost:5173") // 🔥 important for React
 public class MatchController {
 
-    @Autowired
-    private MatchService matchService;
+    private final MatchService matchService;
 
-    @PostMapping
-    public ResponseEntity<Match> createMatch(@RequestBody Match match) {
-        Match savedMatch = matchService.createMatch(match);
-        return ResponseEntity.ok(savedMatch);
+    public MatchController(MatchService matchService) {
+        this.matchService = matchService;
     }
 
-    @GetMapping
-    public ResponseEntity<List<Match>> getAllMatches() {
-        List<Match> matches = matchService.getAllMatches();
-        return ResponseEntity.ok(matches);
-    }
-// Mark availability
-  // Mark availability correctly through service
-    @PostMapping("/{matchId}/availability")
-    public ResponseEntity<Match> markAvailability(
-            @PathVariable Long matchId,
-            @RequestParam Long playerId,
-            @RequestParam boolean available) {
+    @PostMapping(
+    consumes = "application/json",
+    produces = "application/json"
+    )
+    public ResponseEntity<MatchResponse> createMatch(
+            @Valid @RequestBody MatchRequest request) {
 
-        Match updatedMatch = matchService.updatePlayerAvailability(matchId, playerId, available);
-        return ResponseEntity.ok(updatedMatch);
+        return ResponseEntity.ok(matchService.createMatch(request));
+    }
+
+    // ✅ ADD THIS
+    @GetMapping(produces = "application/json")
+    public ResponseEntity<List<MatchResponse>> getAllMatches() {
+        return ResponseEntity.ok(matchService.getAllMatches());
     }
 }
