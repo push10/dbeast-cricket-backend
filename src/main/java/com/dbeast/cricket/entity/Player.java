@@ -1,10 +1,9 @@
-package com.dbeast.cricket.entity; 
+package com.dbeast.cricket.entity;
 
 import jakarta.persistence.*;
-import java.util.HashSet;
-import java.util.Set;
 
 @Entity
+@Table(name = "players")
 public class Player {
 
     @Id
@@ -16,42 +15,39 @@ public class Player {
 
     private String name;
 
-    @Column(unique = true)
-    private String mobile;
+    private String otp;
 
-    private String password;
-
-    private boolean verified; // for OTP login flow
-
-    @ManyToMany(mappedBy = "availablePlayers")
-    private Set<Match> matchesAvailable = new HashSet<>();
-
-    // Constructors
     public Player() {}
 
-    public Player(String name, String mobile, String password) {
-        this.name = name;
-        this.mobile = mobile;
-        this.password = password;
-        this.verified = false;
+    public Long getId() {
+        return id;
     }
 
-    // Getters and Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public String getMobile() {
+        return mobile;
+    }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public String getName() {
+        return name;
+    }
 
-    public String getMobile() { return mobile; }
-    public void setMobile(String mobile) { this.mobile = mobile; }
+    public String getOtp() {
+        return otp;
+    }
 
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public boolean isVerified() { return verified; }
-    public void setVerified(boolean verified) { this.verified = verified; }
+    public void setMobile(String mobile) {
+        this.mobile = mobile;
+    }
 
-    public Set<Match> getMatchesAvailable() { return matchesAvailable; }
-    public void setMatchesAvailable(Set<Match> matchesAvailable) { this.matchesAvailable = matchesAvailable; }
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setOtp(String otp) {
+        this.otp = otp;
+    }
 }
