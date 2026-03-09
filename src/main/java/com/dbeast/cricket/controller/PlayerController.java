@@ -15,10 +15,10 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/players")
-@RequiredArgsConstructor
+@RequiredArgsConstructor  // Lombok will generate constructor for final fields
 public class PlayerController {
 
-    private final PlayerRepository repository;
+    private final PlayerRepository repository;  // Spring injects this
 
     @PostMapping
     public Player create(@RequestBody Player player) {
