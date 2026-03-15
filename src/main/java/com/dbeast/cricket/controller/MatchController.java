@@ -13,7 +13,7 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/matches")
-@CrossOrigin(origins = "http://localhost:5173") // 🔥 important for React
+@CrossOrigin(origins = "http://localhost:5173")
 public class MatchController {
 
     private final MatchService matchService;
@@ -22,9 +22,12 @@ public class MatchController {
         this.matchService = matchService;
     }
 
+    // -------------------------
+    // Create Match
+    // -------------------------
     @PostMapping(
-    consumes = "application/json",
-    produces = "application/json"
+        consumes = "application/json",
+        produces = "application/json"
     )
     public ResponseEntity<MatchResponse> createMatch(
             @Valid @RequestBody MatchRequest request) {
@@ -32,9 +35,27 @@ public class MatchController {
         return ResponseEntity.ok(matchService.createMatch(request));
     }
 
-    // ✅ ADD THIS
+    // -------------------------
+    // Get All Matches
+    // -------------------------
     @GetMapping(produces = "application/json")
-    public ResponseEntity<List<MatchResponse>> getAllMatches() {
-        return ResponseEntity.ok(matchService.getAllMatches());
+    public ResponseEntity<List<MatchResponse>> getAllMatches(
+            @RequestParam Long playerId) {
+
+        return ResponseEntity.ok(matchService.getAllMatches(playerId));
+    }
+
+    // -------------------------
+    // Update Availability
+    // -------------------------
+    @PostMapping("/{matchId}/availability")
+    public ResponseEntity<Void> updateAvailability(
+            @PathVariable Long matchId,
+            @RequestParam Long playerId,
+            @RequestParam boolean available) {
+
+        matchService.updateAvailability(matchId, playerId, available);
+
+        return ResponseEntity.ok().build();
     }
 }

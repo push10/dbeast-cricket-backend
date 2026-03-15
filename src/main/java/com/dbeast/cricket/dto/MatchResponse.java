@@ -9,27 +9,32 @@ public class MatchResponse {
     private String teamB;
     private LocalDate matchDate;
 
-    // Default constructor is mandatory for Jackson
+    private int availableCount;
+    private Boolean myStatus;
+
     public MatchResponse() {}
 
-    // Constructor for convenience
-    public MatchResponse(Long id, String teamA, String teamB, LocalDate matchDate) {
+    public MatchResponse(Long id, String teamA, String teamB, LocalDate matchDate,
+                         int availableCount, Boolean myStatus) {
         this.id = id;
         this.teamA = teamA;
         this.teamB = teamB;
         this.matchDate = matchDate;
+        this.availableCount = availableCount;
+        this.myStatus = myStatus;
     }
 
-    // Getters and setters
     public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
     public String getTeamA() { return teamA; }
-    public void setTeamA(String teamA) { this.teamA = teamA; }
-
     public String getTeamB() { return teamB; }
-    public void setTeamB(String teamB) { this.teamB = teamB; }
-
     public LocalDate getMatchDate() { return matchDate; }
+    public int getAvailableCount() { return availableCount; }
+    public Boolean getMyStatus() { return myStatus; }
+
+    public void setId(Long id) { this.id = id; }
+    public void setTeamA(String teamA) { this.teamA = teamA; }
+    public void setTeamB(String teamB) { this.teamB = teamB; }
     public void setMatchDate(LocalDate matchDate) { this.matchDate = matchDate; }
+    public void setAvailableCount(int availableCount) { this.availableCount = availableCount; }
+    public void setMyStatus(Boolean myStatus) { this.myStatus = myStatus; }
 }
