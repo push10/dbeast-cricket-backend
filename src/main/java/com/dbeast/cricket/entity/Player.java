@@ -2,6 +2,8 @@ package com.dbeast.cricket.entity;
 
 import jakarta.persistence.*;
 
+import java.util.List;
+
 @Entity
 @Table(name = "players")
 public class Player {
@@ -16,6 +18,9 @@ public class Player {
     private String name;
 
     private String otp;
+
+    @OneToMany(mappedBy = "player", cascade = CascadeType.ALL)
+    private List<PlayerTeam> teams;
 
     public Player() {}
 

@@ -9,5 +9,5 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: update # Change from 'create' once the first run works
     show-sql: true
