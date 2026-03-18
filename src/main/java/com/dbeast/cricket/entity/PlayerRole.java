@@ -1,6 +1,6 @@
 package com.dbeast.cricket.entity;
 
-public enum Role {
+public enum PlayerRole {
     BATSMAN,
     BOWLER,
     ALLROUNDER,
