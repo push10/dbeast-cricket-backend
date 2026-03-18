@@ -26,9 +26,9 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
-                        "/api/players/**",
                         "/api/players/register",
-                        "/api/players/send-otp"
+                        "/api/players/send-otp",
+                        "/api/players/login"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

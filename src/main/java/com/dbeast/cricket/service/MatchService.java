@@ -8,7 +8,9 @@ import com.dbeast.cricket.entity.Player;
 import com.dbeast.cricket.repository.MatchAvailabilityRepository;
 import com.dbeast.cricket.repository.MatchRepository;
 import com.dbeast.cricket.repository.PlayerRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -57,7 +59,7 @@ public class MatchService {
     public MatchResponse getMatchById(Long id, Long playerId) {
 
         Match match = matchRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Match not found with id: " + id));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Match not found"));
 
         return mapToResponse(match, playerId);
     }
@@ -68,10 +70,10 @@ public class MatchService {
     public void updateAvailability(Long matchId, Long playerId, boolean available) {
 
         Match match = matchRepository.findById(matchId)
-                .orElseThrow(() -> new RuntimeException("Match not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Match not found"));
 
         Player player = playerRepository.findById(playerId)
-                .orElseThrow(() -> new RuntimeException("Player not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found"));
 
         MatchAvailability availability =
                 availabilityRepository
