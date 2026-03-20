@@ -6,6 +6,7 @@ import com.dbeast.cricket.dto.NextMatchSquadResponse;
 import com.dbeast.cricket.dto.SquadPlayerResponse;
 import com.dbeast.cricket.entity.Match;
 import com.dbeast.cricket.entity.MatchAvailability;
+import com.dbeast.cricket.entity.MatchStatus;
 import com.dbeast.cricket.entity.Player;
 import com.dbeast.cricket.entity.PlayerTeam;
 import com.dbeast.cricket.entity.Team;
@@ -61,24 +62,18 @@ public class MatchService {
     // Get All Matches
     // -------------------------
     public List<MatchResponse> getAllMatches(Long playerId) {
-        Player player = playerRepository.findById(playerId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found"));
-
-        Set<String> playerTeamNames = playerTeamRepository.findByPlayer(player)
-                .stream()
-                .map(PlayerTeam::getTeam)
-                .map(Team::getTeamName)
-                .collect(Collectors.toSet());
-
-        if (playerTeamNames.isEmpty()) {
-            return List.of();
-        }
-
-        return matchRepository.findAll()
-                .stream()
+        return getPlayerScopedMatches(playerId).stream()
                 .filter(match -> !match.getMatchDate().isBefore(LocalDate.now()))
-                .filter(match -> playerTeamNames.contains(match.getTeamA()) || playerTeamNames.contains(match.getTeamB()))
+                .filter(match -> getStatus(match) != MatchStatus.COMPLETED)
                 .sorted((left, right) -> left.getMatchDate().compareTo(right.getMatchDate()))
+                .map(match -> mapToResponse(match, playerId))
+                .collect(Collectors.toList());
+    }
+
+    public List<MatchResponse> getCompletedMatches(Long playerId) {
+        return getPlayerScopedMatches(playerId).stream()
+                .filter(match -> getStatus(match) == MatchStatus.COMPLETED)
+                .sorted((left, right) -> right.getMatchDate().compareTo(left.getMatchDate()))
                 .map(match -> mapToResponse(match, playerId))
                 .collect(Collectors.toList());
     }
@@ -100,6 +95,7 @@ public class MatchService {
         Match nextMatch = matchRepository.findAll()
                 .stream()
                 .filter(match -> !match.getMatchDate().isBefore(LocalDate.now()))
+                .filter(match -> getStatus(match) != MatchStatus.COMPLETED)
                 .filter(match -> playerTeamNames.contains(match.getTeamA()) || playerTeamNames.contains(match.getTeamB()))
                 .sorted((left, right) -> left.getMatchDate().compareTo(right.getMatchDate()))
                 .findFirst()
@@ -136,6 +132,26 @@ public class MatchService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Match not found"));
 
         return mapToResponse(match, playerId);
+    }
+
+    public MatchResponse markMatchCompleted(Long matchId, String captainMobile) {
+        Match match = matchRepository.findById(matchId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Match not found"));
+
+        Player captain = playerRepository.findByMobile(captainMobile)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found"));
+
+        validateCaptainCanManageMatch(captain, match);
+
+        if (match.getMatchDate().isAfter(LocalDate.now())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Only matches on or before today can be marked completed"
+            );
+        }
+
+        match.setStatus(MatchStatus.COMPLETED);
+        return mapToResponse(matchRepository.save(match), captain.getId());
     }
 
     // -------------------------
@@ -178,6 +194,7 @@ public class MatchService {
         match.setTeamA(resolveHomeTeamName(creatorMobile, request));
         match.setTeamB(request.getTeamB().trim());
         match.setMatchDate(request.getMatchDate());
+        match.setStatus(MatchStatus.SCHEDULED);
         return match;
     }
 
@@ -225,9 +242,30 @@ public class MatchService {
                 match.getTeamA(),
                 match.getTeamB(),
                 match.getMatchDate(),
+                getStatus(match).name(),
                 availableCount,
                 myStatus
         );
+    }
+
+    private List<Match> getPlayerScopedMatches(Long playerId) {
+        Player player = playerRepository.findById(playerId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found"));
+
+        Set<String> playerTeamNames = playerTeamRepository.findByPlayer(player)
+                .stream()
+                .map(PlayerTeam::getTeam)
+                .map(Team::getTeamName)
+                .collect(Collectors.toSet());
+
+        if (playerTeamNames.isEmpty()) {
+            return List.of();
+        }
+
+        return matchRepository.findAll()
+                .stream()
+                .filter(match -> playerTeamNames.contains(match.getTeamA()) || playerTeamNames.contains(match.getTeamB()))
+                .toList();
     }
 
     private void validateAvailabilityUpdate(Player actor, Player targetPlayer, Match match, boolean available) {
@@ -251,15 +289,7 @@ public class MatchService {
     }
 
     private boolean canCaptainManageAvailability(Player actor, Player targetPlayer, Match match) {
-        Set<String> matchTeams = Set.of(match.getTeamA(), match.getTeamB());
-
-        Set<String> captainTeams = playerTeamRepository.findByPlayer(actor)
-                .stream()
-                .filter(playerTeam -> playerTeam.getRole() == TeamMemberRole.CAPTAIN)
-                .map(PlayerTeam::getTeam)
-                .map(team -> team.getTeamName())
-                .filter(matchTeams::contains)
-                .collect(Collectors.toSet());
+        Set<String> captainTeams = getCaptainTeamsForMatch(actor, match);
 
         if (captainTeams.isEmpty()) {
             return false;
@@ -270,5 +300,30 @@ public class MatchService {
                 .map(PlayerTeam::getTeam)
                 .map(team -> team.getTeamName())
                 .anyMatch(captainTeams::contains);
+    }
+
+    private void validateCaptainCanManageMatch(Player captain, Match match) {
+        if (getCaptainTeamsForMatch(captain, match).isEmpty()) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Only a captain of this match can update it"
+            );
+        }
+    }
+
+    private Set<String> getCaptainTeamsForMatch(Player captain, Match match) {
+        Set<String> matchTeams = Set.of(match.getTeamA(), match.getTeamB());
+
+        return playerTeamRepository.findByPlayer(captain)
+                .stream()
+                .filter(playerTeam -> playerTeam.getRole() == TeamMemberRole.CAPTAIN)
+                .map(PlayerTeam::getTeam)
+                .map(Team::getTeamName)
+                .filter(matchTeams::contains)
+                .collect(Collectors.toSet());
+    }
+
+    private MatchStatus getStatus(Match match) {
+        return match.getStatus() == null ? MatchStatus.SCHEDULED : match.getStatus();
     }
 }

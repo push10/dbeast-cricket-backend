@@ -21,6 +21,10 @@ public class Match {
     @Column(nullable = false)
     private LocalDate matchDate;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private MatchStatus status = MatchStatus.SCHEDULED;
+
     public Match() {
     }
 
@@ -29,6 +33,7 @@ public class Match {
         this.teamA = teamA;
         this.teamB = teamB;
         this.matchDate = matchDate;
+        this.status = MatchStatus.SCHEDULED;
     }
 
     public Long getId() {
@@ -57,5 +62,13 @@ public class Match {
 
     public void setMatchDate(LocalDate matchDate) {
         this.matchDate = matchDate;
+    }
+
+    public MatchStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(MatchStatus status) {
+        this.status = status;
     }
 }

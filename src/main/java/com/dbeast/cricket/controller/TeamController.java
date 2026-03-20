@@ -2,6 +2,7 @@ package com.dbeast.cricket.controller;
 
 import com.dbeast.cricket.dto.AddPlayerToTeamRequest;
 import com.dbeast.cricket.dto.CreateTeamRequest;
+import com.dbeast.cricket.dto.PlayerSummaryResponse;
 import com.dbeast.cricket.dto.TeamResponse;
 import com.dbeast.cricket.service.TeamService;
 import jakarta.validation.Valid;
@@ -42,6 +43,14 @@ public class TeamController {
             @Valid @RequestBody AddPlayerToTeamRequest request
     ) {
         return ResponseEntity.ok(teamService.addPlayerToTeam(principal.getName(), teamId, request.getMobile()));
+    }
+
+    @GetMapping("/{teamId}/available-players")
+    public ResponseEntity<List<PlayerSummaryResponse>> getAvailablePlayersForTeam(
+            Principal principal,
+            @PathVariable Long teamId
+    ) {
+        return ResponseEntity.ok(teamService.getAvailablePlayersForTeam(principal.getName(), teamId));
     }
 
     @GetMapping("/{teamId}")

@@ -16,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class TeamService {
@@ -90,6 +92,38 @@ public class TeamService {
                 .map(PlayerTeam::getTeam)
                 .distinct()
                 .map(this::mapTeam)
+                .toList();
+    }
+
+    public List<PlayerSummaryResponse> getAvailablePlayersForTeam(String captainMobile, Long teamId) {
+        Player captain = findPlayerByMobile(captainMobile);
+        Team team = findTeam(teamId);
+
+        if (!playerTeamRepository.existsByPlayerAndTeamAndRole(captain, team, TeamMemberRole.CAPTAIN)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only captain can view available players for this team");
+        }
+
+        Set<Long> existingPlayerIds = playerTeamRepository.findByTeam(team).stream()
+                .map(PlayerTeam::getPlayer)
+                .map(Player::getId)
+                .collect(Collectors.toSet());
+
+        return playerRepository.findAll().stream()
+                .filter(player -> !existingPlayerIds.contains(player.getId()))
+                .sorted((left, right) -> {
+                    String leftName = left.getName() == null ? "" : left.getName();
+                    String rightName = right.getName() == null ? "" : right.getName();
+                    return leftName.compareToIgnoreCase(rightName);
+                })
+                .map(player -> new PlayerSummaryResponse(
+                        player.getId(),
+                        player.getName(),
+                        player.getMobile(),
+                        player.getEmail(),
+                        player.getUserRole(),
+                        player.getPlayerRole(),
+                        null
+                ))
                 .toList();
     }
 

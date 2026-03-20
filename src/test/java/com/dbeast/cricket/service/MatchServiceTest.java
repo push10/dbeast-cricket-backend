@@ -4,6 +4,7 @@ import com.dbeast.cricket.dto.MatchResponse;
 import com.dbeast.cricket.dto.NextMatchSquadResponse;
 import com.dbeast.cricket.entity.Match;
 import com.dbeast.cricket.entity.MatchAvailability;
+import com.dbeast.cricket.entity.MatchStatus;
 import com.dbeast.cricket.entity.Player;
 import com.dbeast.cricket.entity.PlayerRole;
 import com.dbeast.cricket.entity.PlayerTeam;
@@ -69,6 +70,7 @@ class MatchServiceTest {
         upcomingMatch.setTeamA("Falcons");
         upcomingMatch.setTeamB("Titans");
         upcomingMatch.setMatchDate(LocalDate.now().plusDays(1));
+        upcomingMatch.setStatus(MatchStatus.SCHEDULED);
 
         captain = createPlayer(1L, "9990001111", "Captain", PlayerRole.ALLROUNDER);
         selectedPlayer = createPlayer(2L, "9990002222", "Selected Player", PlayerRole.BATSMAN);
@@ -181,6 +183,67 @@ class MatchServiceTest {
         List<MatchResponse> response = matchService.getAllMatches(selectedPlayer.getId());
 
         assertTrue(response.isEmpty());
+    }
+
+    @Test
+    void getCompletedMatchesReturnsOnlyCompletedMatchesForPlayersTeams() {
+        Match futureMatch = new Match();
+        setMatchId(futureMatch, 22L);
+        futureMatch.setTeamA("Falcons");
+        futureMatch.setTeamB("Titans");
+        futureMatch.setMatchDate(LocalDate.now().plusDays(2));
+
+        Match completedMatch = new Match();
+        setMatchId(completedMatch, 23L);
+        completedMatch.setTeamA("Falcons");
+        completedMatch.setTeamB("Knights");
+        completedMatch.setMatchDate(LocalDate.now());
+        completedMatch.setStatus(MatchStatus.COMPLETED);
+
+        when(playerRepository.findById(selectedPlayer.getId())).thenReturn(Optional.of(selectedPlayer));
+        when(playerTeamRepository.findByPlayer(selectedPlayer))
+                .thenReturn(List.of(createMembership(selectedPlayer, "Falcons", TeamMemberRole.MEMBER)));
+        when(matchRepository.findAll()).thenReturn(List.of(futureMatch, completedMatch));
+        when(availabilityRepository.countByMatchIdAndAvailableTrue(completedMatch.getId())).thenReturn(0L);
+
+        List<MatchResponse> response = matchService.getCompletedMatches(selectedPlayer.getId());
+
+        assertEquals(1, response.size());
+        assertEquals(completedMatch.getId(), response.get(0).getId());
+    }
+
+    @Test
+    void markMatchCompletedAllowsCaptainForTodayMatch() {
+        upcomingMatch.setMatchDate(LocalDate.now());
+
+        when(matchRepository.findById(upcomingMatch.getId())).thenReturn(Optional.of(upcomingMatch));
+        when(playerRepository.findByMobile(captain.getMobile())).thenReturn(Optional.of(captain));
+        when(playerTeamRepository.findByPlayer(captain))
+                .thenReturn(List.of(createMembership(captain, "Falcons", TeamMemberRole.CAPTAIN)));
+        when(matchRepository.save(any(Match.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(availabilityRepository.countByMatchIdAndAvailableTrue(upcomingMatch.getId())).thenReturn(0L);
+        when(availabilityRepository.findByMatchIdAndPlayerId(upcomingMatch.getId(), captain.getId()))
+                .thenReturn(Optional.empty());
+
+        MatchResponse response = matchService.markMatchCompleted(upcomingMatch.getId(), captain.getMobile());
+
+        assertEquals("COMPLETED", response.getStatus());
+        assertEquals(MatchStatus.COMPLETED, upcomingMatch.getStatus());
+    }
+
+    @Test
+    void markMatchCompletedRejectsNonCaptain() {
+        when(matchRepository.findById(upcomingMatch.getId())).thenReturn(Optional.of(upcomingMatch));
+        when(playerRepository.findByMobile(selectedPlayer.getMobile())).thenReturn(Optional.of(selectedPlayer));
+        when(playerTeamRepository.findByPlayer(selectedPlayer))
+                .thenReturn(List.of(createMembership(selectedPlayer, "Falcons", TeamMemberRole.MEMBER)));
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> matchService.markMatchCompleted(upcomingMatch.getId(), selectedPlayer.getMobile())
+        );
+
+        assertEquals(403, exception.getStatusCode().value());
     }
 
     @Test

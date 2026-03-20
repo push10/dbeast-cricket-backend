@@ -7,6 +7,10 @@ spring:
     username: dbeast_user
     password: dbeast_pass
 
+  sql:
+    init:
+      mode: always
+
   jpa:
     hibernate:
       ddl-auto: update # Change from 'create' once the first run works
