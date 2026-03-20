@@ -7,9 +7,11 @@ import org.springframework.web.bind.annotation.*;
 
 import com.dbeast.cricket.dto.MatchRequest;
 import com.dbeast.cricket.dto.MatchResponse;
+import com.dbeast.cricket.dto.NextMatchSquadResponse;
 import com.dbeast.cricket.service.MatchService;
 
 import jakarta.validation.Valid;
+import java.security.Principal;
 
 @RestController
 @RequestMapping("/api/matches")
@@ -30,9 +32,10 @@ public class MatchController {
         produces = "application/json"
     )
     public ResponseEntity<MatchResponse> createMatch(
+            Principal principal,
             @Valid @RequestBody MatchRequest request) {
 
-        return ResponseEntity.ok(matchService.createMatch(request));
+        return ResponseEntity.ok(matchService.createMatch(principal.getName(), request));
     }
 
     // -------------------------
@@ -45,6 +48,11 @@ public class MatchController {
         return ResponseEntity.ok(matchService.getAllMatches(playerId));
     }
 
+    @GetMapping(value = "/next-squad", produces = "application/json")
+    public ResponseEntity<NextMatchSquadResponse> getNextMatchSquad(Principal principal) {
+        return ResponseEntity.ok(matchService.getNextMatchSquad(principal.getName()));
+    }
+
     // -------------------------
     // Update Availability
     // -------------------------
@@ -52,9 +60,10 @@ public class MatchController {
     public ResponseEntity<Void> updateAvailability(
             @PathVariable Long matchId,
             @RequestParam Long playerId,
-            @RequestParam boolean available) {
+            @RequestParam boolean available,
+            Principal principal) {
 
-        matchService.updateAvailability(matchId, playerId, available);
+        matchService.updateAvailability(matchId, playerId, available, principal.getName());
 
         return ResponseEntity.ok().build();
     }

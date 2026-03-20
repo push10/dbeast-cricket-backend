@@ -1,17 +1,17 @@
 package com.dbeast.cricket.dto;
 
 import jakarta.validation.constraints.FutureOrPresent;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
 
 public class MatchRequest {
 
-    @NotBlank(message = "Team A name must not be blank")
+    private Long teamId;
+
     private String teamA;
 
-    @NotBlank(message = "Team B name must not be blank")
+    @jakarta.validation.constraints.NotBlank(message = "Team B name must not be blank")
     private String teamB;
 
     @NotNull(message = "Match date is required")
@@ -19,6 +19,14 @@ public class MatchRequest {
     private LocalDate matchDate;
 
     public MatchRequest() {
+    }
+
+    public Long getTeamId() {
+        return teamId;
+    }
+
+    public void setTeamId(Long teamId) {
+        this.teamId = teamId;
     }
 
     public String getTeamA() {
