@@ -83,6 +83,16 @@ public class TeamService {
         return mapTeam(findTeam(teamId));
     }
 
+    public List<TeamResponse> getMyTeams(String mobile) {
+        Player player = findPlayerByMobile(mobile);
+
+        return playerTeamRepository.findByPlayer(player).stream()
+                .map(PlayerTeam::getTeam)
+                .distinct()
+                .map(this::mapTeam)
+                .toList();
+    }
+
     private Player findPlayerByMobile(String mobile) {
         return playerRepository.findByMobile(mobile)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found"));

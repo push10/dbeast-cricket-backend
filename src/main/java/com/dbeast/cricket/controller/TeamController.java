@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/teams")
@@ -27,6 +28,11 @@ public class TeamController {
             @Valid @RequestBody CreateTeamRequest request
     ) {
         return ResponseEntity.ok(teamService.createTeam(principal.getName(), request.getTeamName()));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<List<TeamResponse>> getMyTeams(Principal principal) {
+        return ResponseEntity.ok(teamService.getMyTeams(principal.getName()));
     }
 
     @PostMapping("/{teamId}/players")
