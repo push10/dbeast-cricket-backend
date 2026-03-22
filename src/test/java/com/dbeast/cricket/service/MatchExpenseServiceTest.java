@@ -124,6 +124,7 @@ class MatchExpenseServiceTest {
         MatchExpenseDiscountRequest discount = new MatchExpenseDiscountRequest();
         discount.setPlayerId(member.getId());
         discount.setAmount(60.0);
+        discount.setDescription("Player paid travel separately");
         request.setDiscounts(List.of(discount));
 
         when(matchRepository.findById(completedMatch.getId())).thenReturn(Optional.of(completedMatch));
@@ -150,6 +151,8 @@ class MatchExpenseServiceTest {
 
         assertEquals(1, response.getParticipants().size());
         assertEquals(40.0, response.getParticipants().get(0).getNetPayable());
+        assertEquals("Player paid travel separately", response.getDiscounts().get(0).getDescription());
+        assertEquals(completedMatch.getId(), response.getDiscounts().get(0).getMatchId());
     }
 
     @Test

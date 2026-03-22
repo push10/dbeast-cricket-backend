@@ -213,6 +213,56 @@ class MatchServiceTest {
     }
 
     @Test
+    void getMatchPlayersReturnsRosterWithAvailability() {
+        Player opponentCaptain = createPlayer(3L, "9990003333", "Opponent Captain", PlayerRole.BOWLER);
+        Player opponentPlayer = createPlayer(4L, "9990004444", "Opponent Player", PlayerRole.WICKET_KEEPER);
+
+        when(matchRepository.findById(upcomingMatch.getId())).thenReturn(Optional.of(upcomingMatch));
+        when(playerRepository.findByMobile(captain.getMobile())).thenReturn(Optional.of(captain));
+        when(playerTeamRepository.findByPlayer(captain))
+                .thenReturn(List.of(createMembership(captain, "Falcons", TeamMemberRole.CAPTAIN)));
+        when(playerTeamRepository.findAll()).thenReturn(List.of(
+                createMembership(captain, "Falcons", TeamMemberRole.CAPTAIN),
+                createMembership(selectedPlayer, "Falcons", TeamMemberRole.MEMBER),
+                createMembership(opponentCaptain, "Titans", TeamMemberRole.CAPTAIN),
+                createMembership(opponentPlayer, "Titans", TeamMemberRole.MEMBER)
+        ));
+        when(availabilityRepository.findByMatchId(upcomingMatch.getId())).thenReturn(List.of(
+                createAvailability(upcomingMatch, captain, true),
+                createAvailability(upcomingMatch, selectedPlayer, false),
+                createAvailability(upcomingMatch, opponentPlayer, true)
+        ));
+
+        var response = matchService.getMatchPlayers(upcomingMatch.getId(), captain.getMobile());
+
+        assertEquals(4, response.size());
+        assertEquals(captain.getId(), response.get(0).getId());
+        assertTrue(response.get(0).isAvailable());
+        assertEquals("Falcons", response.get(0).getTeamName());
+        assertEquals(selectedPlayer.getId(), response.get(1).getId());
+        assertFalse(response.get(1).isAvailable());
+        assertEquals("Titans", response.get(2).getTeamName());
+        assertTrue(response.get(3).isAvailable());
+    }
+
+    @Test
+    void getMatchPlayersRejectsPlayerOutsideMatch() {
+        Player outsider = createPlayer(5L, "9990005555", "Outsider", PlayerRole.BOWLER);
+
+        when(matchRepository.findById(upcomingMatch.getId())).thenReturn(Optional.of(upcomingMatch));
+        when(playerRepository.findByMobile(outsider.getMobile())).thenReturn(Optional.of(outsider));
+        when(playerTeamRepository.findByPlayer(outsider))
+                .thenReturn(List.of(createMembership(outsider, "Warriors", TeamMemberRole.MEMBER)));
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> matchService.getMatchPlayers(upcomingMatch.getId(), outsider.getMobile())
+        );
+
+        assertEquals(403, exception.getStatusCode().value());
+    }
+
+    @Test
     void markMatchCompletedAllowsCaptainForTodayMatch() {
         upcomingMatch.setMatchDate(LocalDate.now());
 
@@ -339,6 +389,31 @@ class MatchServiceTest {
     }
 
     @Test
+    void updateAvailabilityAllowsCaptainToMarkTeamMemberAvailable() {
+        when(matchRepository.findById(upcomingMatch.getId())).thenReturn(Optional.of(upcomingMatch));
+        when(playerRepository.findById(selectedPlayer.getId())).thenReturn(Optional.of(selectedPlayer));
+        when(playerRepository.findByMobile(captain.getMobile())).thenReturn(Optional.of(captain));
+        when(availabilityRepository.findByMatchIdAndPlayerId(upcomingMatch.getId(), selectedPlayer.getId()))
+                .thenReturn(Optional.empty());
+        when(playerTeamRepository.findByPlayer(captain))
+                .thenReturn(List.of(createMembership(captain, "Falcons", TeamMemberRole.CAPTAIN)));
+        when(playerTeamRepository.findByPlayer(selectedPlayer))
+                .thenReturn(List.of(createMembership(selectedPlayer, "Falcons", TeamMemberRole.MEMBER)));
+
+        matchService.updateAvailability(
+                upcomingMatch.getId(),
+                selectedPlayer.getId(),
+                true,
+                captain.getMobile()
+        );
+
+        ArgumentCaptor<MatchAvailability> availabilityCaptor = ArgumentCaptor.forClass(MatchAvailability.class);
+        verify(availabilityRepository).save(availabilityCaptor.capture());
+        assertTrue(availabilityCaptor.getValue().isAvailable());
+        assertEquals(selectedPlayer.getId(), availabilityCaptor.getValue().getPlayer().getId());
+    }
+
+    @Test
     void updateAvailabilityRejectsNonCaptainMarkingAnotherPlayerUnavailable() {
         Player teammate = createPlayer(4L, "9990004444", "Teammate", PlayerRole.BOWLER);
 
@@ -353,6 +428,30 @@ class MatchServiceTest {
                         upcomingMatch.getId(),
                         selectedPlayer.getId(),
                         false,
+                        teammate.getMobile()
+                )
+        );
+
+        assertEquals(403, exception.getStatusCode().value());
+        verify(availabilityRepository, never()).save(any(MatchAvailability.class));
+    }
+
+    @Test
+    void updateAvailabilityRejectsNonCaptainMarkingAnotherPlayerAvailable() {
+        Player teammate = createPlayer(4L, "9990004444", "Teammate", PlayerRole.BOWLER);
+
+        when(matchRepository.findById(upcomingMatch.getId())).thenReturn(Optional.of(upcomingMatch));
+        when(playerRepository.findById(selectedPlayer.getId())).thenReturn(Optional.of(selectedPlayer));
+        when(playerRepository.findByMobile(teammate.getMobile())).thenReturn(Optional.of(teammate));
+        when(playerTeamRepository.findByPlayer(teammate))
+                .thenReturn(List.of(createMembership(teammate, "Falcons", TeamMemberRole.MEMBER)));
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> matchService.updateAvailability(
+                        upcomingMatch.getId(),
+                        selectedPlayer.getId(),
+                        true,
                         teammate.getMobile()
                 )
         );

@@ -12,6 +12,7 @@ import com.dbeast.cricket.dto.CreateMatchExpenseRequest;
 import com.dbeast.cricket.dto.MatchContributionResponse;
 import com.dbeast.cricket.dto.MatchExpenseResponse;
 import com.dbeast.cricket.dto.MatchFinanceOverviewResponse;
+import com.dbeast.cricket.dto.MatchAvailabilityPlayerResponse;
 import com.dbeast.cricket.dto.NextMatchSquadResponse;
 import com.dbeast.cricket.service.MatchExpenseService;
 import com.dbeast.cricket.service.MatchFinanceService;
@@ -123,6 +124,14 @@ public class MatchController {
             @Valid @RequestBody CreateMatchContributionRequest request) {
 
         return ResponseEntity.ok(matchFinanceService.upsertContribution(matchId, principal.getName(), request));
+    }
+
+    @GetMapping(value = "/{matchId}/players", produces = "application/json")
+    public ResponseEntity<List<MatchAvailabilityPlayerResponse>> getMatchPlayers(
+            @PathVariable Long matchId,
+            Principal principal) {
+
+        return ResponseEntity.ok(matchService.getMatchPlayers(matchId, principal.getName()));
     }
 
     // -------------------------

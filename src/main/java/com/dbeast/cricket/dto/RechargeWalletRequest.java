@@ -3,24 +3,15 @@ package com.dbeast.cricket.dto;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 
-public class MatchExpenseDiscountRequest {
+public class RechargeWalletRequest {
 
-    @NotNull(message = "Discount player id is required")
-    private Long playerId;
-
-    @NotNull(message = "Discount amount is required")
-    @DecimalMin(value = "0.00", inclusive = true, message = "Discount amount cannot be negative")
+    @NotNull(message = "Recharge amount is required")
+    @DecimalMin(value = "0.01", message = "Recharge amount must be greater than 0")
     private Double amount;
 
+    private Long playerId;
+
     private String description;
-
-    public Long getPlayerId() {
-        return playerId;
-    }
-
-    public void setPlayerId(Long playerId) {
-        this.playerId = playerId;
-    }
 
     public Double getAmount() {
         return amount;
@@ -28,6 +19,14 @@ public class MatchExpenseDiscountRequest {
 
     public void setAmount(Double amount) {
         this.amount = amount;
+    }
+
+    public Long getPlayerId() {
+        return playerId;
+    }
+
+    public void setPlayerId(Long playerId) {
+        this.playerId = playerId;
     }
 
     public String getDescription() {

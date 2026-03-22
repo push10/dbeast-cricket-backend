@@ -13,8 +13,10 @@ public class MatchFinancePlayerResponse {
     private final TeamMemberRole teamRole;
     private final Double walletBalance;
     private final Double payableAmount;
+    private final Double discountAmount;
     private final Double contributionAmount;
     private final Double matchBalance;
+    private final boolean insufficientWalletBalance;
 
     public MatchFinancePlayerResponse(
             Long playerId,
@@ -25,8 +27,10 @@ public class MatchFinancePlayerResponse {
             TeamMemberRole teamRole,
             Double walletBalance,
             Double payableAmount,
+            Double discountAmount,
             Double contributionAmount,
-            Double matchBalance
+            Double matchBalance,
+            boolean insufficientWalletBalance
     ) {
         this.playerId = playerId;
         this.playerName = playerName;
@@ -36,8 +40,10 @@ public class MatchFinancePlayerResponse {
         this.teamRole = teamRole;
         this.walletBalance = walletBalance;
         this.payableAmount = payableAmount;
+        this.discountAmount = discountAmount;
         this.contributionAmount = contributionAmount;
         this.matchBalance = matchBalance;
+        this.insufficientWalletBalance = insufficientWalletBalance;
     }
 
     public Long getPlayerId() {
@@ -72,11 +78,19 @@ public class MatchFinancePlayerResponse {
         return payableAmount;
     }
 
+    public Double getDiscountAmount() {
+        return discountAmount;
+    }
+
     public Double getContributionAmount() {
         return contributionAmount;
     }
 
     public Double getMatchBalance() {
         return matchBalance;
+    }
+
+    public boolean isInsufficientWalletBalance() {
+        return insufficientWalletBalance;
     }
 }

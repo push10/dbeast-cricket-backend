@@ -82,12 +82,14 @@ public class MatchFinanceService {
                 ));
 
         Map<Long, Double> payableAmounts = calculatePayables(expenses);
+        Map<Long, Double> discountAmounts = calculateDiscounts(expenses);
 
         List<MatchFinancePlayerResponse> players = getMatchPlayers(match, expenses, contributions).stream()
                 .map(player -> mapFinancePlayer(
                         player,
                         match,
                         payableAmounts.getOrDefault(player.getId(), 0.0),
+                        discountAmounts.getOrDefault(player.getId(), 0.0),
                         contributionAmounts.get(player.getId())
                 ))
                 .toList();
@@ -274,7 +276,11 @@ public class MatchFinanceService {
                         .map(discount -> new MatchExpenseDiscountResponse(
                                 discount.getPlayer().getId(),
                                 discount.getPlayer().getName(),
-                                discount.getAmount()
+                                discount.getAmount(),
+                                discount.getDescription(),
+                                expense.getMatch().getId(),
+                                expense.getMatch().getTeamA() + " vs " + expense.getMatch().getTeamB(),
+                                expense.getExpenseDate()
                         ))
                         .toList()
         );
@@ -295,11 +301,14 @@ public class MatchFinanceService {
             Player player,
             Match match,
             Double payableAmount,
+            Double discountAmount,
             Double contributionAmount
     ) {
         PlayerTeam matchMembership = findRelevantMembership(player, match);
         double contribution = contributionAmount == null ? 0.0 : contributionAmount;
         double payable = payableAmount == null ? 0.0 : payableAmount;
+        double discount = discountAmount == null ? 0.0 : discountAmount;
+        double walletBalance = player.getWallet() == null ? 0.0 : player.getWallet().getBalance();
 
         return new MatchFinancePlayerResponse(
                 player.getId(),
@@ -308,11 +317,31 @@ public class MatchFinanceService {
                 matchMembership == null ? "" : matchMembership.getTeam().getTeamName(),
                 player.getPlayerRole(),
                 matchMembership == null ? null : matchMembership.getRole(),
-                player.getWallet() == null ? 0.0 : player.getWallet().getBalance(),
+                walletBalance,
                 roundToTwoDecimals(payable),
+                roundToTwoDecimals(discount),
                 roundToTwoDecimals(contribution),
-                roundToTwoDecimals(contribution - payable)
+                roundToTwoDecimals(contribution - payable),
+                walletBalance < 0
         );
+    }
+
+    private Map<Long, Double> calculateDiscounts(List<MatchExpense> expenses) {
+        Map<Long, Double> discounts = new LinkedHashMap<>();
+
+        for (MatchExpense expense : expenses) {
+            expense.getDiscounts().forEach(discount ->
+                    discounts.merge(discount.getPlayer().getId(), discount.getAmount(), Double::sum)
+            );
+        }
+
+        return discounts.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> roundToTwoDecimals(entry.getValue()),
+                        (left, right) -> right,
+                        LinkedHashMap::new
+                ));
     }
 
     private Map<Long, Double> calculatePayables(List<MatchExpense> expenses) {

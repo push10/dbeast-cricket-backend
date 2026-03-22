@@ -32,6 +32,9 @@ public class MatchExpenseDiscount {
     @Column(nullable = false)
     private Double amount;
 
+    @Column
+    private String description;
+
     public Long getId() {
         return id;
     }
@@ -62,5 +65,13 @@ public class MatchExpenseDiscount {
 
     public void setAmount(Double amount) {
         this.amount = amount;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 }

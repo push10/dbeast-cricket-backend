@@ -84,7 +84,7 @@ public class MatchExpenseService {
                 || request.isMandatoryForAvailablePlayers();
 
         List<Player> participants = resolveParticipants(match, request, mandatoryForAvailablePlayers);
-        Map<Long, Double> discounts = resolveDiscounts(request.getDiscounts(), participants);
+        Map<Long, MatchExpenseDiscountRequest> discounts = resolveDiscounts(request.getDiscounts(), participants);
         double perPlayerAmount = roundToTwoDecimals(request.getTotalAmount() / participants.size());
 
         MatchExpense expense = new MatchExpense();
@@ -107,12 +107,13 @@ public class MatchExpenseService {
                 })
                 .toList());
 
-        expense.setDiscounts(discounts.entrySet().stream()
-                .map(entry -> {
+        expense.setDiscounts(discounts.values().stream()
+                .map(discountRequest -> {
                     MatchExpenseDiscount discount = new MatchExpenseDiscount();
                     discount.setMatchExpense(expense);
-                    discount.setPlayer(findPlayer(entry.getKey()));
-                    discount.setAmount(entry.getValue());
+                    discount.setPlayer(findPlayer(discountRequest.getPlayerId()));
+                    discount.setAmount(roundToTwoDecimals(discountRequest.getAmount()));
+                    discount.setDescription(normalizeOptionalText(discountRequest.getDescription()));
                     return discount;
                 })
                 .toList());
@@ -213,13 +214,16 @@ public class MatchExpenseService {
                 .toList();
     }
 
-    private Map<Long, Double> resolveDiscounts(List<MatchExpenseDiscountRequest> discountRequests, List<Player> participants) {
+    private Map<Long, MatchExpenseDiscountRequest> resolveDiscounts(
+            List<MatchExpenseDiscountRequest> discountRequests,
+            List<Player> participants
+    ) {
         if (discountRequests == null || discountRequests.isEmpty()) {
             return Map.of();
         }
 
         Set<Long> participantIds = participants.stream().map(Player::getId).collect(Collectors.toSet());
-        Map<Long, Double> discounts = new LinkedHashMap<>();
+        Map<Long, MatchExpenseDiscountRequest> discounts = new LinkedHashMap<>();
 
         for (MatchExpenseDiscountRequest request : discountRequests) {
             if (!participantIds.contains(request.getPlayerId())) {
@@ -229,7 +233,7 @@ public class MatchExpenseService {
                 );
             }
 
-            discounts.put(request.getPlayerId(), roundToTwoDecimals(request.getAmount()));
+            discounts.put(request.getPlayerId(), request);
         }
 
         return discounts;
@@ -273,7 +277,11 @@ public class MatchExpenseService {
                         .map(discount -> new MatchExpenseDiscountResponse(
                                 discount.getPlayer().getId(),
                                 discount.getPlayer().getName(),
-                                discount.getAmount()
+                                discount.getAmount(),
+                                discount.getDescription(),
+                                expense.getMatch().getId(),
+                                expense.getMatch().getTeamA() + " vs " + expense.getMatch().getTeamB(),
+                                expense.getExpenseDate()
                         ))
                         .toList()
         );
@@ -290,6 +298,15 @@ public class MatchExpenseService {
 
     private double roundToTwoDecimals(double value) {
         return Math.round(value * 100.0) / 100.0;
+    }
+
+    private String normalizeOptionalText(String value) {
+        if (value == null) {
+            return null;
+        }
+
+        String normalized = value.trim();
+        return normalized.isEmpty() ? null : normalized;
     }
 
     private MatchStatus getStatus(Match match) {

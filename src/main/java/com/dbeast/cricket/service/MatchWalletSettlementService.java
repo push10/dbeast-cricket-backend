@@ -75,7 +75,7 @@ public class MatchWalletSettlementService {
         for (MatchContribution contribution : contributions) {
             Player player = contribution.getPlayer();
             playersById.putIfAbsent(player.getId(), player);
-            targetImpactByPlayer.merge(player.getId(), contribution.getAmount(), Double::sum);
+            targetImpactByPlayer.merge(player.getId(), -roundToTwoDecimals(contribution.getAmount()), Double::sum);
         }
 
         Map<Long, MatchWalletImpact> existingImpacts = matchWalletImpactRepository.findByMatchId(matchId).stream()

@@ -2,6 +2,7 @@ package com.dbeast.cricket.service;
 
 import com.dbeast.cricket.dto.MatchRequest;
 import com.dbeast.cricket.dto.MatchResponse;
+import com.dbeast.cricket.dto.MatchAvailabilityPlayerResponse;
 import com.dbeast.cricket.dto.NextMatchSquadResponse;
 import com.dbeast.cricket.dto.SquadPlayerResponse;
 import com.dbeast.cricket.entity.Match;
@@ -21,8 +22,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -121,6 +125,54 @@ public class MatchService {
                 squad.size(),
                 squad
         );
+    }
+
+    public List<MatchAvailabilityPlayerResponse> getMatchPlayers(Long matchId, String actorMobile) {
+        Match match = matchRepository.findById(matchId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Match not found"));
+
+        Player actor = playerRepository.findByMobile(actorMobile)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player not found"));
+
+        validatePlayerBelongsToMatch(actor, match);
+
+        Set<String> matchTeams = Set.of(match.getTeamA(), match.getTeamB());
+        Map<Long, Boolean> availabilityByPlayerId = availabilityRepository.findByMatchId(matchId).stream()
+                .collect(Collectors.toMap(
+                        availability -> availability.getPlayer().getId(),
+                        MatchAvailability::isAvailable,
+                        (left, right) -> right
+                ));
+
+        return playerTeamRepository.findAll().stream()
+                .filter(playerTeam -> matchTeams.contains(playerTeam.getTeam().getTeamName()))
+                .collect(Collectors.toMap(
+                        playerTeam -> playerTeam.getPlayer().getId(),
+                        Function.identity(),
+                        (existing, replacement) -> existing.getRole() == TeamMemberRole.CAPTAIN ? existing : replacement
+                ))
+                .values()
+                .stream()
+                .sorted(Comparator
+                        .comparing((PlayerTeam playerTeam) -> playerTeam.getTeam().getTeamName(), String.CASE_INSENSITIVE_ORDER)
+                        .thenComparing(playerTeam -> playerTeam.getRole() == TeamMemberRole.CAPTAIN ? 0 : 1)
+                        .thenComparing(playerTeam -> {
+                            String name = playerTeam.getPlayer().getName();
+                            return name == null ? "" : name;
+                        }, String.CASE_INSENSITIVE_ORDER))
+                .map(playerTeam -> {
+                    Player player = playerTeam.getPlayer();
+                    return new MatchAvailabilityPlayerResponse(
+                            player.getId(),
+                            player.getName(),
+                            player.getMobile(),
+                            player.getPlayerRole(),
+                            playerTeam.getTeam().getTeamName(),
+                            playerTeam.getRole(),
+                            availabilityByPlayerId.getOrDefault(player.getId(), false)
+                    );
+                })
+                .toList();
     }
 
     // -------------------------
@@ -268,22 +320,29 @@ public class MatchService {
                 .toList();
     }
 
+    private void validatePlayerBelongsToMatch(Player player, Match match) {
+        Set<String> matchTeams = Set.of(match.getTeamA(), match.getTeamB());
+        boolean belongsToMatch = playerTeamRepository.findByPlayer(player).stream()
+                .map(PlayerTeam::getTeam)
+                .map(Team::getTeamName)
+                .anyMatch(matchTeams::contains);
+
+        if (!belongsToMatch) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Player is not part of this match");
+        }
+    }
+
     private void validateAvailabilityUpdate(Player actor, Player targetPlayer, Match match, boolean available) {
         if (actor.getId().equals(targetPlayer.getId())) {
             return;
         }
 
-        if (available) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN,
-                    "Players can only mark themselves available"
-            );
-        }
-
         if (!canCaptainManageAvailability(actor, targetPlayer, match)) {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN,
-                    "Only the captain can mark a selected player unavailable"
+                    available
+                            ? "Only the captain can mark another player available"
+                            : "Only the captain can mark a selected player unavailable"
             );
         }
     }
